@@ -1,4 +1,4 @@
-module backend_time_manager_dev
+module backend_time_manager
 
 go 1.23.0
 
