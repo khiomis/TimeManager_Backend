@@ -3,14 +3,19 @@ package api
 import "github.com/gin-gonic/gin"
 
 func ConfigureAuthorizationApiRoutes(router *gin.Engine) {
-	router.POST("/sign-in", HandleSignIn)
-	router.POST("/sign-out", HandleSignOut)
+	router.POST("/auth", handleSignIn)
+	router.PUT("/auth", handleRefreshToken)
+	router.DELETE("/auth", handleSignOut)
 }
 
-func HandleSignIn(c *gin.Context) {
+func handleSignIn(c *gin.Context) {
 
 }
 
-func HandleSignOut(c *gin.Context) {
+func handleRefreshToken(c *gin.Context) {
+
+}
+
+func handleSignOut(c *gin.Context) {
 
 }
