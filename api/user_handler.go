@@ -4,8 +4,10 @@ import (
 	"backend_time_manager/database"
 	"backend_time_manager/dto"
 	"backend_time_manager/entity"
+	"backend_time_manager/utils"
 	"github.com/gin-gonic/gin"
-	"time"
+	"net/http"
+	"strconv"
 )
 
 func ConfigureUserApiRoutes(router *gin.Engine) {
@@ -22,32 +24,40 @@ func handleCreateUser(context *gin.Context) {
 	var accDto dto.CreateUserDto
 
 	if err := context.BindJSON(&accDto); err != nil {
-		context.String(400, err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if _, err := database.FindUserByEmail(accDto.Email); err != nil {
-		context.String(400, "Email already used")
+	emailAlreadyInUse, err := database.CheckEmailAlreadyInUseUser(accDto.Email)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+	if emailAlreadyInUse {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+		return
+	}
+
+	password, err := utils.HashPassword(accDto.Password)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	user := entity.User{
-		Email:     accDto.Email,
-		Name:      accDto.Name,
-		Password:  accDto.Password,
-		Status:    entity.UserPending,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		Email:    accDto.Email,
+		Name:     accDto.Name,
+		Password: password,
+		Status:   entity.UserPending,
 	}
 
-	user, err := database.SaveUser(user)
+	savedUser, err := database.SaveUser(user)
 
 	if err != nil {
 		context.String(400, err.Error())
 		return
 	}
 
-	userResponse := dto.UserDTO{Id: user.Id, Name: user.Name, Email: user.Email, Status: user.Status, UpdatedAt: user.UpdatedAt}
+	userResponse := dto.UserDTO{Id: savedUser.Id, Name: savedUser.Name, Email: savedUser.Email, Status: savedUser.Status, UpdatedAt: savedUser.UpdatedAt}
 
 	context.IndentedJSON(200, userResponse)
 }
@@ -94,7 +104,11 @@ func handleUpdateUser(context *gin.Context) {
 }
 
 func handleGetUser(context *gin.Context) {
-	id := context.Param("id")
+	id, err := strconv.ParseInt(context.Param("id"), 10, 64)
+
+	if err != nil {
+		context.String(400, "Invalid user")
+	}
 
 	user, err := database.FindUserById(id)
 

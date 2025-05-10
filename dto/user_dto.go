@@ -6,7 +6,7 @@ import (
 )
 
 type UserDTO struct {
-	Id        string            `json:"id"`
+	Id        int64             `json:"id"`
 	Email     string            `json:"email"`
 	Name      string            `json:"name"`
 	Status    entity.UserStatus `json:"status"`
