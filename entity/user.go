@@ -1,9 +1,13 @@
 package entity
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 type User struct {
 	Id                int64      `json:"id" db:"id_user"`
+	Uuid              uuid.UUID  `json:"uuid" db:"id_user_uuid"`
 	CreatedAt         time.Time  `json:"createdAt" db:"dt_created_at"`
 	UpdatedAt         time.Time  `json:"updatedAt" db:"dt_updated_at"`
 	Name              string     `json:"name" db:"nm_user"`

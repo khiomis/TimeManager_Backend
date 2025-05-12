@@ -28,6 +28,10 @@ func main() {
 
 	api.ConfigureAuthorizationApiRoutes(router)
 	api.ConfigureUserApiRoutes(router)
+	api.ConfigureProjectApiRoutes(router)
+	api.ConfigureEntryApiRoutes(router)
+	api.ConfigureTagApiRoutes(router)
+	api.ConfigureTaskApiRoutes(router)
 
 	database.ConnectDatabase()
 
