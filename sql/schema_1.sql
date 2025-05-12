@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS TBL_TASKS
     DT_CREATED_AT timestamptz                                 not null default current_timestamp,
     DT_UPDATED_AT timestamptz                                 not null,
     NM_TASK       varchar(128)                                not null,
-    ID_PROJECT    BIGINT REFERENCES TBL_PROJECTS (ID_PROJECT) not null
+    ID_PROJECT    BIGINT REFERENCES TBL_PROJECTS (ID_PROJECT) not null,
+    ID_OWNER      BIGINT REFERENCES TBL_USERS (ID_USER)       NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS TBL_ENTRIES

@@ -6,18 +6,21 @@ import (
 	"backend_time_manager/entity"
 	"backend_time_manager/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
-	"strconv"
 )
 
-func ConfigureUserApiRoutes(router *gin.Engine) {
+func ConfigurePublicUserApiRoutes(router *gin.RouterGroup) {
 	router.POST("/user", handleCreateUser)
-	router.PUT("/user", handleUpdateUser)
-	router.DELETE("/user/remove", handleDeactivateUser)
-	router.GET("/user/:id", handleGetUser)
 	router.PUT("/user/activate", handleActivateUser)
 	router.PUT("/user/forgot-password", handleForgotPassword)
 	router.PUT("/user/reset-password", handleResetPassword)
+}
+
+func ConfigurePrivateUserApiRoutes(router *gin.RouterGroup) {
+	router.PUT("/user", handleUpdateUser)
+	router.DELETE("/user/remove", handleDeactivateUser)
+	router.GET("/user/:id", handleUserId, handleGetUser)
 }
 
 func handleCreateUser(context *gin.Context) {
@@ -104,13 +107,9 @@ func handleUpdateUser(context *gin.Context) {
 }
 
 func handleGetUser(context *gin.Context) {
-	id, err := strconv.ParseInt(context.Param("id"), 10, 64)
+	id := context.Param("id")
 
-	if err != nil {
-		context.String(400, "Invalid user")
-	}
-
-	user, err := database.FindUserById(id)
+	user, err := database.FindUserById(uuid.MustParse(id))
 
 	if err != nil {
 		context.String(400, "User not found")
@@ -128,4 +127,21 @@ func handleForgotPassword(context *gin.Context) {
 
 func handleResetPassword(context *gin.Context) {
 
+}
+
+func handleValidateUserId(context *gin.Context) {
+	id := context.Param("id")
+
+	if err := uuid.Validate(id); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
+		return
+	}
+
+	user, err := database.FindUserById(uuid.MustParse(id))
+	if err != nil {
+		context.String(400, "User not found")
+		return
+	}
+
+	context.Set("user", user)
 }

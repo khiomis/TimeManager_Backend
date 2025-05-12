@@ -2,12 +2,13 @@ package api
 
 import "github.com/gin-gonic/gin"
 
-func ConfigureEntryApiRoutes(router *gin.Engine) {
-	router.POST("/entry", handleCreateEntry)
-	router.GET("/entry/:uuid", handleReadEntry)
-	router.GET("/entries", handleListEntries)
-	router.PUT("/entry/:uuid", handleUpdateEntry)
-	router.DELETE("/entry/:uuid", handleDeleteEntry)
+func ConfigureEntryApiRoutes(privateRouter *gin.RouterGroup) {
+	group := privateRouter.Group("/entry")
+	group.POST("/", handleCreateEntry)
+	group.GET("/:uuid", handleReadEntry)
+	group.GET("/list", handleListEntries)
+	group.PUT("/:uuid", handleUpdateEntry)
+	group.DELETE("/:uuid", handleDeleteEntry)
 }
 
 func handleCreateEntry(context *gin.Context) {

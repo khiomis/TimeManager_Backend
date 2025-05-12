@@ -26,12 +26,18 @@ func main() {
 		return
 	}
 
-	api.ConfigureAuthorizationApiRoutes(router)
-	api.ConfigureUserApiRoutes(router)
-	api.ConfigureProjectApiRoutes(router)
-	api.ConfigureEntryApiRoutes(router)
-	api.ConfigureTagApiRoutes(router)
-	api.ConfigureTaskApiRoutes(router)
+	defaultRouter := router.Group("/api")
+
+	api.ConfigurePublicAuthorizationApiRoutes(defaultRouter)
+	api.ConfigurePublicUserApiRoutes(defaultRouter)
+
+	privateRouter := defaultRouter.Group("/", api.ValidateAndLoadToken)
+	api.ConfigurePrivateAuthorizationApiRoutes(privateRouter)
+	api.ConfigurePrivateUserApiRoutes(privateRouter)
+	api.ConfigureProjectApiRoutes(privateRouter)
+	api.ConfigureEntryApiRoutes(privateRouter)
+	api.ConfigureTagApiRoutes(privateRouter)
+	api.ConfigureTaskApiRoutes(privateRouter)
 
 	database.ConnectDatabase()
 

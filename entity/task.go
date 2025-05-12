@@ -12,4 +12,5 @@ type Task struct {
 	UpdatedAt time.Time `json:"updatedAt" db:"dt_updated_at"`
 	Name      string    `json:"name" db:"nm_task"`
 	IdProject int64     `json:"idProject" db:"id_project"`
+	IdOwner   int64     `json:"idOwner" db:"id_owner"`
 }

@@ -4,10 +4,29 @@ import (
 	"backend_time_manager/entity"
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"time"
 )
 
 func FindUserById(id int64) (entity.User, error) {
+	var users []entity.User
+	err := Db.Select(&users, "SELECT * FROM TBL_USERS WHERE ID_USER = $1", id)
+	if err != nil {
+		return entity.User{}, err
+	}
+
+	if users == nil || len(users) == 0 {
+		return entity.User{}, errors.New("User not found")
+	}
+
+	if len(users) > 1 {
+		return entity.User{}, errors.New("Multiple users found")
+	}
+
+	return users[0], nil
+}
+
+func FindUserByUuid(id uuid.UUID) (entity.User, error) {
 	var users []entity.User
 	err := Db.Select(&users, "SELECT * FROM TBL_USERS WHERE ID_USER = $1", id)
 	if err != nil {

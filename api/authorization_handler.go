@@ -1,12 +1,57 @@
 package api
 
-import "github.com/gin-gonic/gin"
+import (
+	"backend_time_manager/database"
+	"backend_time_manager/entity"
+	"backend_time_manager/utils"
+	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
+)
 
-func ConfigureAuthorizationApiRoutes(router *gin.Engine) {
+func ConfigurePublicAuthorizationApiRoutes(router *gin.RouterGroup) {
 	router.POST("/auth/sign-in", handleSignIn)
 	router.POST("/auth/sign-in/validate-token", handleConfirmSignIn)
+}
+
+func ConfigurePrivateAuthorizationApiRoutes(router *gin.RouterGroup) {
 	router.POST("/auth/refresh", handleRefreshToken)
 	router.DELETE("/auth/logout", handleSignOut)
+}
+
+func ValidateAndLoadToken(context *gin.Context) {
+	token := context.GetHeader("Authorization")
+
+	if token == "" {
+		context.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	token = strings.Replace(token, "Bearer ", "", 1)
+	token = strings.Replace(token, "bearer ", "", 1)
+
+	claim, err := utils.ParseToken(token)
+	if err != nil {
+		context.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	user, err := database.FindUserById(claim.UserID)
+
+	if err != nil {
+		_ = context.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+
+	session, err := database.FindSessionByUuid(claim.SessionId)
+
+	if err != nil {
+		_ = context.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+
+	context.Set("logged_user", user)
+	context.Set("logged_session", session)
 }
 
 func handleSignIn(context *gin.Context) {
@@ -24,14 +69,58 @@ func handleConfirmSignIn(context *gin.Context) {
 }
 
 func handleRefreshToken(context *gin.Context) {
-	// Get the refresh token
-	// Generate the new auth token
-	// Return the generated auth token
+	sessionCtx, sessionExists := context.Get("logged_session")
+	userCtx, userExists := context.Get("logged_user")
+	if !sessionExists || !userExists {
+		context.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	session := sessionCtx.(*entity.Session)
+	user := userCtx.(*entity.User)
+
+	var refreshToken string
+	if err := context.BindJSON(refreshToken); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No refresh token provided"})
+		return
+	}
+
+	refreshClaims, err := utils.ParseToken(refreshToken)
+
+	if err != nil {
+		_ = context.AbortWithError(http.StatusUnauthorized, err)
+		return
+	}
+
+	if refreshClaims.UserID != user.Id || refreshClaims.SessionId != session.Id {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	newAuthToken, err := utils.GenerateAccessToken(user.Id, session.Id)
+
+	if err != nil {
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"token": newAuthToken})
 }
 
 func handleSignOut(context *gin.Context) {
-	// Get if the auth is valid
-	// Get the session id and user id from the jwt token
-	// Delete the session from the db
-	// Return success
+	sessionCtx, sessionExists := context.Get("logged_session")
+	if !sessionExists {
+		context.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	session := sessionCtx.(*entity.Session)
+
+	err := database.DeleteSession(session.Id)
+
+	if err != nil {
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	context.Status(http.StatusOK)
 }

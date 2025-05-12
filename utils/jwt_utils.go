@@ -33,11 +33,15 @@ func GenerateAccessToken(userId int64, sessionId uuid.UUID) (string, error) {
 	return tokenString, err
 }
 
-func GenerateRefreshToken(sessionId uuid.UUID) (string, error) {
-	refreshClaims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		Subject:   sessionId.String(),
+func GenerateRefreshToken(userId int64, sessionId uuid.UUID) (string, error) {
+	refreshClaims := KhiomisClaims{
+		UserID:    userId,
+		SessionId: sessionId,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // access token valid for 15 min
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   sessionId.String(),
+		},
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
@@ -54,7 +58,7 @@ func ParseToken(tokenString string) (*KhiomisClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return accessSecret, nil
+		return token, nil
 	})
 	if err != nil {
 		return nil, err
@@ -67,7 +71,7 @@ func ParseToken(tokenString string) (*KhiomisClaims, error) {
 
 	// Optional: manually check expiration (usually handled automatically)
 	if claims.ExpiresAt.Time.Before(time.Now()) {
-		return nil, fmt.Errorf("token expired")
+		return claims, fmt.Errorf("token expired")
 	}
 
 	return claims, nil
