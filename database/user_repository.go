@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"time"
 )
 
 func FindUserById(id int64) (entity.User, error) {
@@ -45,21 +44,17 @@ func FindUserByUuid(id uuid.UUID) (entity.User, error) {
 }
 
 func FindUserByEmail(email string) (entity.User, error) {
-	var users []entity.User
-	err := Db.Select(&users, "SELECT * FROM TBL_USERS WHERE DS_EMAIL = $1", email)
+	var user entity.User
+	err := Db.Get(&user, "SELECT * FROM TBL_USERS WHERE DS_EMAIL = $1", email)
 	if err != nil {
 		return entity.User{}, err
 	}
 
-	if users == nil || len(users) == 0 {
+	if user.Id <= 0 {
 		return entity.User{}, errors.New("User not found")
 	}
 
-	if len(users) > 1 {
-		return entity.User{}, errors.New("Multiple users found")
-	}
-
-	return users[0], nil
+	return user, nil
 }
 
 func CheckEmailAlreadyInUseUser(email string) (bool, error) {
@@ -86,26 +81,27 @@ func CheckEmailAlreadyInUseUser(email string) (bool, error) {
 }
 
 func SaveUser(user entity.User) (entity.User, error) {
-	isInsert := user.Id <= 0
-
-	timeOperation := time.Now()
-
-	if isInsert {
-		user.CreatedAt = timeOperation
+	if user.Id <= 0 {
+		return insertUser(user)
 	}
-	user.UpdatedAt = timeOperation
 
-	var err error
-	if isInsert {
-		var query = "INSERT INTO TBL_USERS (DT_CREATED_AT, DT_UPDATED_AT, NM_USER, DS_EMAIL, DS_PASSWORD, TP_STATUS) " +
-			"VALUES (current_timestamp,current_timestamp,:nm_user,:ds_email,:ds_password,:tp_status)"
-		_, err = Db.NamedExecContext(context.Background(), query, user)
-	} else {
-		var query = "UPDATE TBL_USERS " +
-			"SET DB_UPDATED_AT = :DB_UPDATED_AT, DS_EMAIL = :DS_EMAIL, NM_USER = :NM_USER, NM_PASSWORD = :NM_PASSWORD, TP_STATUS = :TP_STATUS" +
-			"WHERE ID_USER = :ID_USER"
-		_, err = Db.NamedExecContext(context.Background(), query, user)
+	return updateUser(user)
+}
+
+func insertUser(user entity.User) (entity.User, error) {
+	var query = "INSERT INTO TBL_USERS (DT_UPDATED_AT, NM_USER, DS_EMAIL, DS_PASSWORD, TP_STATUS) VALUES (current_timestamp,:nm_user,:ds_email,:ds_password,:tp_status)"
+	_, err := Db.NamedExecContext(context.Background(), query, user)
+
+	if err != nil {
+		return entity.User{}, err
 	}
+
+	return FindUserByEmail(user.Email)
+}
+
+func updateUser(user entity.User) (entity.User, error) {
+	var query = "UPDATE TBL_USERS SET DB_UPDATED_AT = current_timestamp, DS_EMAIL = :DS_EMAIL, NM_USER = :NM_USER, NM_PASSWORD = :NM_PASSWORD, TP_STATUS = :TP_STATUS WHERE ID_USER = :ID_USER"
+	_, err := Db.NamedExecContext(context.Background(), query, user)
 
 	if err != nil {
 		return entity.User{}, err

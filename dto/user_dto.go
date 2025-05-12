@@ -2,11 +2,12 @@ package dto
 
 import (
 	"backend_time_manager/entity"
+	"github.com/google/uuid"
 	"time"
 )
 
 type UserDTO struct {
-	Id        int64             `json:"id"`
+	Id        uuid.UUID         `json:"id"`
 	Email     string            `json:"email"`
 	Name      string            `json:"name"`
 	Status    entity.UserStatus `json:"status"`
@@ -17,4 +18,13 @@ type CreateUserDto struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
+}
+
+func (user UserDTO) From(entity entity.User) UserDTO {
+	user.Id = entity.Uuid
+	user.Email = entity.Email
+	user.Name = entity.Name
+	user.Status = entity.Status
+	user.UpdatedAt = entity.UpdatedAt
+	return user
 }

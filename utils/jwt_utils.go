@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"backend_time_manager/entity"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -16,14 +17,19 @@ func InitJwt() {
 	refreshSecret = []byte(os.Getenv("REFRESH_SECRET"))
 }
 
-func GenerateAccessToken(userId int64, sessionId uuid.UUID) (string, error) {
+func GenerateAccessToken(userId int64, session entity.Session) (string, error) {
+	expireAt := time.Now().Add(3 * time.Hour)
+	if expireAt.After(session.ExpireAt) {
+		expireAt = session.ExpireAt
+	}
+
 	accessClaims := KhiomisClaims{
 		UserID:    userId,
-		SessionId: sessionId,
+		SessionId: session.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * time.Hour)), // access token valid for 15 min
+			ExpiresAt: jwt.NewNumericDate(expireAt), // access token valid for 15 min
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Subject:   sessionId.String(),
+			Subject:   session.Id.String(),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -33,14 +39,14 @@ func GenerateAccessToken(userId int64, sessionId uuid.UUID) (string, error) {
 	return tokenString, err
 }
 
-func GenerateRefreshToken(userId int64, sessionId uuid.UUID) (string, error) {
+func GenerateRefreshToken(userId int64, session entity.Session) (string, error) {
 	refreshClaims := KhiomisClaims{
 		UserID:    userId,
-		SessionId: sessionId,
+		SessionId: session.Id,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // access token valid for 15 min
+			ExpiresAt: jwt.NewNumericDate(session.ExpireAt), // access token valid for 15 min
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Subject:   sessionId.String(),
+			Subject:   session.Id.String(),
 		},
 	}
 

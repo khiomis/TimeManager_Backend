@@ -2,11 +2,13 @@ package api
 
 import (
 	"backend_time_manager/database"
+	"backend_time_manager/dto"
 	"backend_time_manager/entity"
 	"backend_time_manager/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func ConfigurePublicAuthorizationApiRoutes(router *gin.RouterGroup) {
@@ -55,22 +57,122 @@ func ValidateAndLoadToken(context *gin.Context) {
 }
 
 func handleSignIn(context *gin.Context) {
-	// Get the sign in data from the request
-	// Validate
-	// Generate a token and send to the user's email
-	// Return success with a few data needed to be sent after to validate the token
+	var signInBody dto.SignInDto
+	if err := context.BindJSON(&signInBody); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := database.FindUserByEmail(signInBody.Email)
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !utils.CheckPasswordHash(signInBody.Password, user.Password) {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Password does not match"})
+		return
+	}
+
+	validationToken := entity.ValidationToken{
+		ExpireAt: time.Now().Add(time.Minute * 15),
+		Code:     utils.GenerateCharToken(6),
+		Type:     entity.ValidationTokenTypeSignIn,
+		IdUser:   user.Id,
+	}
+
+	validationToken, err = database.InsertToken(validationToken)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.TokenValidationDto{
+		Id:    validationToken.Id,
+		Email: user.Email,
+		Token: "",
+	}
+
+	context.JSON(http.StatusOK, response)
 }
 
 func handleConfirmSignIn(context *gin.Context) {
-	// Get token from body
-	// Validate token, checking all data available
-	// Create a session and a jwt token with the session id and the user id
-	// Return success, with a few infos of the user, the jwt token and refresh token
+	var data dto.TokenValidationDto
+	if err := context.BindJSON(&data); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	validationToken, err := database.FindToken(data.Id, data.Token, entity.ValidationTokenTypeSignIn)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := database.FindUserByEmail(data.Email)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	if validationToken.IdUser != user.Id {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token does not match"})
+		return
+	}
+
+	if validationToken.ExpireAt.After(time.Now()) {
+		context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
+		return
+	}
+
+	session := entity.Session{
+		ExpireAt: time.Now().Add(7 * 24 * time.Hour),
+		IdUser:   user.Id,
+	}
+	session, err = database.CreateSession(session)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	authToken, err := utils.GenerateAccessToken(user.Id, session)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	refreshToken, err := utils.GenerateRefreshToken(user.Id, session)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := dto.AuthUserDto{
+		AuthToken:          authToken,
+		RefreshToken:       refreshToken,
+		NeedSetNewPassword: false,
+		User:               dto.UserDTO{}.From(user),
+	}
+
+	err = database.RemoveToken(validationToken.Id)
+
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, response)
 }
 
 func handleRefreshToken(context *gin.Context) {
-	session := context.MustGet("logged_session").(*entity.Session)
-	user := context.MustGet("logged_user").(*entity.User)
+	session := context.MustGet("logged_session").(entity.Session)
+	user := context.MustGet("logged_user").(entity.User)
 
 	var refreshToken string
 	if err := context.BindJSON(refreshToken); err != nil {
@@ -90,7 +192,7 @@ func handleRefreshToken(context *gin.Context) {
 		return
 	}
 
-	newAuthToken, err := utils.GenerateAccessToken(user.Id, session.Id)
+	newAuthToken, err := utils.GenerateAccessToken(user.Id, session)
 
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)

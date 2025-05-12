@@ -60,7 +60,7 @@ func handleCreateUser(context *gin.Context) {
 		return
 	}
 
-	userResponse := dto.UserDTO{Id: savedUser.Id, Name: savedUser.Name, Email: savedUser.Email, Status: savedUser.Status, UpdatedAt: savedUser.UpdatedAt}
+	userResponse := dto.UserDTO{}.From(savedUser)
 
 	context.IndentedJSON(200, userResponse)
 }
@@ -109,7 +109,7 @@ func handleUpdateUser(context *gin.Context) {
 func handleGetUser(context *gin.Context) {
 	user := context.MustGet("user").(entity.User)
 
-	userResponse := dto.UserDTO{Id: user.Id, Name: user.Name, Email: user.Email, Status: user.Status, UpdatedAt: user.UpdatedAt}
+	userResponse := dto.UserDTO{}.From(user)
 
 	context.IndentedJSON(200, userResponse)
 }

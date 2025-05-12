@@ -20,6 +20,8 @@ func main() {
 
 	utils.InitJwt()
 
+	database.ConnectDatabase()
+
 	router := gin.Default()
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
@@ -38,8 +40,6 @@ func main() {
 	api.ConfigureEntryApiRoutes(privateRouter)
 	api.ConfigureTagApiRoutes(privateRouter)
 	api.ConfigureTaskApiRoutes(privateRouter)
-
-	database.ConnectDatabase()
 
 	if err := router.Run("localhost:8080"); err != nil {
 		return
