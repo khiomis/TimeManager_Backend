@@ -20,7 +20,7 @@ func ConfigurePublicUserApiRoutes(router *gin.RouterGroup) {
 func ConfigurePrivateUserApiRoutes(router *gin.RouterGroup) {
 	router.PUT("/user", handleUpdateUser)
 	router.DELETE("/user/remove", handleDeactivateUser)
-	router.GET("/user/:id", handleUserId, handleGetUser)
+	router.GET("/user/:userId", handleValidateUserId, handleGetUser)
 }
 
 func handleCreateUser(context *gin.Context) {
@@ -107,14 +107,7 @@ func handleUpdateUser(context *gin.Context) {
 }
 
 func handleGetUser(context *gin.Context) {
-	id := context.Param("id")
-
-	user, err := database.FindUserById(uuid.MustParse(id))
-
-	if err != nil {
-		context.String(400, "User not found")
-		return
-	}
+	user := context.MustGet("user").(entity.User)
 
 	userResponse := dto.UserDTO{Id: user.Id, Name: user.Name, Email: user.Email, Status: user.Status, UpdatedAt: user.UpdatedAt}
 
@@ -130,16 +123,16 @@ func handleResetPassword(context *gin.Context) {
 }
 
 func handleValidateUserId(context *gin.Context) {
-	id := context.Param("id")
+	id := context.Param("userId")
 
 	if err := uuid.Validate(id); err != nil {
 		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid user"})
 		return
 	}
 
-	user, err := database.FindUserById(uuid.MustParse(id))
+	user, err := database.FindUserByUuid(uuid.MustParse(id))
 	if err != nil {
-		context.String(400, "User not found")
+		context.String(http.StatusNotFound, "User not found")
 		return
 	}
 

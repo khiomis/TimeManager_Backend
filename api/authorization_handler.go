@@ -69,15 +69,8 @@ func handleConfirmSignIn(context *gin.Context) {
 }
 
 func handleRefreshToken(context *gin.Context) {
-	sessionCtx, sessionExists := context.Get("logged_session")
-	userCtx, userExists := context.Get("logged_user")
-	if !sessionExists || !userExists {
-		context.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	session := sessionCtx.(*entity.Session)
-	user := userCtx.(*entity.User)
+	session := context.MustGet("logged_session").(*entity.Session)
+	user := context.MustGet("logged_user").(*entity.User)
 
 	var refreshToken string
 	if err := context.BindJSON(refreshToken); err != nil {
