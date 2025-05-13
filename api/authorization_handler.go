@@ -171,8 +171,8 @@ func handleConfirmSignIn(context *gin.Context) {
 }
 
 func handleRefreshToken(context *gin.Context) {
-	session := context.MustGet("logged_session").(entity.Session)
-	user := context.MustGet("logged_user").(entity.User)
+	session := getLoggedSession(context)
+	user := getLoggedUser(context)
 
 	var refreshToken string
 	if err := context.BindJSON(refreshToken); err != nil {
@@ -203,12 +203,7 @@ func handleRefreshToken(context *gin.Context) {
 }
 
 func handleSignOut(context *gin.Context) {
-	sessionCtx, sessionExists := context.Get("logged_session")
-	if !sessionExists {
-		context.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-	session := sessionCtx.(*entity.Session)
+	session := getLoggedSession(context)
 
 	err := database.DeleteSession(session.Id)
 
@@ -218,4 +213,12 @@ func handleSignOut(context *gin.Context) {
 	}
 
 	context.Status(http.StatusOK)
+}
+
+func getLoggedUser(context *gin.Context) entity.User {
+	return context.MustGet("logged_user").(entity.User)
+}
+
+func getLoggedSession(context *gin.Context) entity.Session {
+	return context.MustGet("logged_session").(entity.Session)
 }

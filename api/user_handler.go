@@ -20,7 +20,7 @@ func ConfigurePublicUserApiRoutes(router *gin.RouterGroup) {
 func ConfigurePrivateUserApiRoutes(router *gin.RouterGroup) {
 	router.PUT("/user", handleUpdateUser)
 	router.DELETE("/user/remove", handleDeactivateUser)
-	router.GET("/user/:userId", handleValidateUserId, handleGetUser)
+	router.GET("/user/:userId", loadUserContext, handleGetUser)
 }
 
 func handleCreateUser(context *gin.Context) {
@@ -56,20 +56,20 @@ func handleCreateUser(context *gin.Context) {
 	savedUser, err := database.SaveUser(user)
 
 	if err != nil {
-		context.String(400, err.Error())
+		context.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	userResponse := dto.UserDTO{}.From(savedUser)
 
-	context.IndentedJSON(200, userResponse)
+	context.IndentedJSON(http.StatusCreated, userResponse)
 }
 
 func handleActivateUser(context *gin.Context) {
 	activationCode := context.DefaultQuery("code", "")
 
 	if activationCode == "" {
-		context.String(400, "Code not provided")
+		context.String(http.StatusBadRequest, "Code not provided")
 	}
 	//id := context.Param("id")
 	//
@@ -107,7 +107,7 @@ func handleUpdateUser(context *gin.Context) {
 }
 
 func handleGetUser(context *gin.Context) {
-	user := context.MustGet("user").(entity.User)
+	user := getUserFromPath(context)
 
 	userResponse := dto.UserDTO{}.From(user)
 
@@ -122,7 +122,7 @@ func handleResetPassword(context *gin.Context) {
 
 }
 
-func handleValidateUserId(context *gin.Context) {
+func loadUserContext(context *gin.Context) {
 	id := context.Param("userId")
 
 	if err := uuid.Validate(id); err != nil {
@@ -137,4 +137,8 @@ func handleValidateUserId(context *gin.Context) {
 	}
 
 	context.Set("user", user)
+}
+
+func getUserFromPath(context *gin.Context) entity.User {
+	return context.MustGet("user").(entity.User)
 }
