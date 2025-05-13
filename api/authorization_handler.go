@@ -17,7 +17,7 @@ func ConfigurePublicAuthorizationApiRoutes(router *gin.RouterGroup) {
 }
 
 func ConfigurePrivateAuthorizationApiRoutes(router *gin.RouterGroup) {
-	router.POST("/auth/refresh", handleRefreshToken)
+	router.POST("/auth/refresh-token", handleRefreshToken)
 	router.DELETE("/auth/logout", handleSignOut)
 }
 

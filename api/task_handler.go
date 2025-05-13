@@ -3,11 +3,12 @@ package api
 import "github.com/gin-gonic/gin"
 
 func ConfigureTaskApiRoutes(privateRouter *gin.RouterGroup) {
-	privateRouter.POST("/task", handleCreateTask)
-	privateRouter.GET("/task/:uuid", handleReadTask)
-	privateRouter.GET("/tasks", handleListTasks)
-	privateRouter.PUT("/task/:uuid", handleUpdateTask)
-	privateRouter.DELETE("/task/:uuid", handleDeleteTask)
+	group := privateRouter.Group("/tasks")
+	group.POST("/", handleCreateTask)
+	group.GET("/", handleListTasks)
+	group.GET("/:uuid", handleReadTask)
+	group.PUT("/:uuid", handleUpdateTask)
+	group.DELETE("/:uuid", handleDeleteTask)
 }
 
 func handleCreateTask(context *gin.Context) {

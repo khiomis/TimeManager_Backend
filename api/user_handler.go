@@ -11,16 +11,16 @@ import (
 )
 
 func ConfigurePublicUserApiRoutes(router *gin.RouterGroup) {
-	router.POST("/user", handleCreateUser)
-	router.PUT("/user/activate", handleActivateUser)
-	router.PUT("/user/forgot-password", handleForgotPassword)
-	router.PUT("/user/reset-password", handleResetPassword)
+	router.POST("/users", handleCreateUser)
+	router.PUT("/users/activate", handleActivateUser)
+	router.PUT("/users/forgot-password", handleForgotPassword)
+	router.PUT("/users/reset-password", handleResetPassword)
 }
 
 func ConfigurePrivateUserApiRoutes(router *gin.RouterGroup) {
-	router.PUT("/user", handleUpdateUser)
-	router.DELETE("/user/remove", handleDeactivateUser)
-	router.GET("/user/:userId", loadUserContext, handleGetUser)
+	router.PUT("/users", handleUpdateUser)
+	router.DELETE("/users/remove", handleDeactivateUser)
+	router.GET("/users/:userId", loadUserContext, handleGetUser)
 }
 
 func handleCreateUser(context *gin.Context) {

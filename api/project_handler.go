@@ -10,9 +10,9 @@ import (
 )
 
 func ConfigureProjectApiRoutes(privateRouter *gin.RouterGroup) {
-	privateRouter.POST("/project", handleCreateProject)
+	privateRouter.POST("/projects", handleCreateProject)
 	privateRouter.GET("/projects", handleListProjects)
-	routerWithProject := privateRouter.Group("/project/:projectId", loadProjectContext)
+	routerWithProject := privateRouter.Group("/projects/:projectId", loadProjectContext)
 	routerWithProject.GET("/", handleReadProject)
 	routerWithProject.PUT("/", handleUpdateProject)
 	routerWithProject.DELETE("/", handleDeleteProject)
