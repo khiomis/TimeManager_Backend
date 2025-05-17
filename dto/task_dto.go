@@ -7,8 +7,8 @@ import (
 
 type TaskDto struct {
 	Id        uuid.UUID        `json:"id"`
-	CreatedAt time.Time        `json:"createdAt"`
-	UpdatedAt time.Time        `json:"updatedAt"`
+	CreatedAt time.Time        `json:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at"`
 	Name      string           `json:"name"`
 	Project   ProjectDto       `json:"project"`
 	Owner     GenericEntityDto `json:"owner"`

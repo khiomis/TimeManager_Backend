@@ -7,10 +7,10 @@ import (
 
 type ValidationToken struct {
 	Id        uuid.UUID           `json:"id" db:"id_validation_token"`
-	CreatedAt time.Time           `json:"createdAt" db:"dt_created_at"`
-	IdUser    int64               `json:"idUser" db:"id_user"`
+	CreatedAt time.Time           `json:"created_at" db:"dt_created_at"`
+	IdUser    int64               `json:"id_user" db:"id_user"`
 	Code      string              `json:"code" db:"cd_validation_token"`
-	ExpireAt  time.Time           `json:"expireAt" db:"dt_expire_at"`
+	ExpireAt  time.Time           `json:"expire_at" db:"dt_expire_at"`
 	Type      ValidationTokenType `json:"type" db:"tp_validation_token"`
 }
 

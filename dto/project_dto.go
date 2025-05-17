@@ -14,8 +14,8 @@ type SaveProjectDto struct {
 
 type ProjectDto struct {
 	Id        uuid.UUID        `json:"id"`
-	CreatedAt time.Time        `json:"createdAt"`
-	UpdatedAt time.Time        `json:"updatedAt"`
+	CreatedAt time.Time        `json:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at"`
 	Name      string           `json:"name"`
 	Color     int              `json:"color"`
 	Owner     GenericEntityDto `json:"owner"`

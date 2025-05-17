@@ -82,13 +82,13 @@ func CheckEmailAlreadyInUseUser(email string) (bool, error) {
 
 func SaveUser(user entity.User) (entity.User, error) {
 	if user.Id <= 0 {
-		return insertUser(user)
+		return InsertUser(user)
 	}
 
-	return updateUser(user)
+	return UpdateUser(user)
 }
 
-func insertUser(user entity.User) (entity.User, error) {
+func InsertUser(user entity.User) (entity.User, error) {
 	var query = "INSERT INTO TBL_USERS (DT_UPDATED_AT, NM_USER, DS_EMAIL, DS_PASSWORD, TP_STATUS) VALUES (current_timestamp,:nm_user,:ds_email,:ds_password,:tp_status)"
 	_, err := Db.NamedExecContext(context.Background(), query, user)
 
@@ -99,7 +99,7 @@ func insertUser(user entity.User) (entity.User, error) {
 	return FindUserByEmail(user.Email)
 }
 
-func updateUser(user entity.User) (entity.User, error) {
+func UpdateUser(user entity.User) (entity.User, error) {
 	var query = "UPDATE TBL_USERS SET DB_UPDATED_AT = current_timestamp, DS_EMAIL = :DS_EMAIL, NM_USER = :NM_USER, NM_PASSWORD = :NM_PASSWORD, TP_STATUS = :TP_STATUS WHERE ID_USER = :ID_USER"
 	_, err := Db.NamedExecContext(context.Background(), query, user)
 

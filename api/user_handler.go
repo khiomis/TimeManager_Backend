@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend_time_manager/constants"
 	"backend_time_manager/database"
 	"backend_time_manager/dto"
 	"backend_time_manager/entity"
@@ -27,36 +28,64 @@ func handleCreateUser(context *gin.Context) {
 	var accDto dto.CreateUserDto
 
 	if err := context.BindJSON(&accDto); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.JSON(http.StatusBadRequest, dto.ErrorDto{
+			Code:        constants.DatabaseQueryError,
+			Message:     "The request body could not be processed.",
+			Description: err.Error(),
+		})
 		return
 	}
 
-	emailAlreadyInUse, err := database.CheckEmailAlreadyInUseUser(accDto.Email)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	if emailAlreadyInUse {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "Email already in use"})
+	if err := accDto.Validate(); !err.IsEmpty() {
+		err.Code = constants.FormInvalid
+		err.Message = "Validation error"
+		context.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	password, err := utils.HashPassword(accDto.Password)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if emailAlreadyInUse, err := database.CheckEmailAlreadyInUseUser(accDto.Email); err != nil {
+		context.JSON(http.StatusInternalServerError, dto.ErrorDto{
+			Code:        constants.DatabaseQueryError,
+			Message:     "An internal server error has occurred.",
+			Description: err.Error(),
+		})
+		return
+	} else if !emailAlreadyInUse {
+		context.JSON(http.StatusBadRequest, dto.ErrorDto{
+			Code:    constants.FormInvalid,
+			Message: "Email already in use.",
+			Errors:  []dto.FieldErrorDto{{Message: "Email already in use.", Code: constants.FormValueAlreadyRegistered, Field: "email"}},
+		})
+		return
+	}
+
+	var hashPassword string
+	if password, err := utils.HashPassword(accDto.Password); err != nil {
+		context.JSON(http.StatusInternalServerError, dto.ErrorDto{
+			Code:        constants.OperationHashParseError,
+			Message:     "An internal server error has occurred.",
+			Description: err.Error(),
+		})
+		return
+	} else {
+		hashPassword = password
 	}
 
 	user := entity.User{
 		Email:    accDto.Email,
 		Name:     accDto.Name,
-		Password: password,
+		Password: hashPassword,
 		Status:   entity.UserPending,
 	}
 
-	savedUser, err := database.SaveUser(user)
+	savedUser, err := database.InsertUser(user)
 
 	if err != nil {
-		context.String(http.StatusBadRequest, err.Error())
+		context.JSON(http.StatusInternalServerError, dto.ErrorDto{
+			Code:        constants.DatabaseInsertError,
+			Message:     "An internal server error has occurred.",
+			Description: err.Error(),
+		})
 		return
 	}
 

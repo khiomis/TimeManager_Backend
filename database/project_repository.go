@@ -5,6 +5,7 @@ import (
 	"backend_time_manager/utils"
 	"context"
 	"github.com/google/uuid"
+	"slices"
 )
 
 func FindProjectByUuid(id uuid.UUID) (entity.Project, error) {
@@ -75,14 +76,7 @@ func IncludeTagOnProject(project entity.Project, idsTag []int64) (entity.Project
 	}
 
 	idsTagAdd := utils.FilterList(idsTag, func(id int64) bool {
-		contains := false
-		for _, tagId := range idsTagsOnProject {
-			if id == tagId {
-				contains = true
-				break
-			}
-		}
-		return !contains
+		return !slices.Contains(idsTagsOnProject, id)
 	})
 
 	var query = "INSERT INTO crz_projects_x_tags (id_project, id_tag) VALUES (:id_project,:id_tag)"
